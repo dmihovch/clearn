@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//need to switch to just use open and read
 
 int main(int argc, char** argv)
 {
@@ -18,13 +19,13 @@ int main(int argc, char** argv)
   int buffer_size = 0;
   char* buffer = malloc(sizeof(char)*buffer_cap);
   char* tmp_buf;
-  char ch;
   if(buffer == NULL)
   {
     fclose(fp);
     return 1;
   }
-
+  //this is a change
+  char ch;
   while(1)
   {
     ch = fgetc(fp);
@@ -35,7 +36,8 @@ int main(int argc, char** argv)
 
     if(buffer_size >= buffer_cap)
     {
-      tmp_buf = realloc(buffer, sizeof(char) * buffer_cap * 2);
+      buffer_cap *= 2;
+      tmp_buf = realloc(buffer, sizeof(char) * buffer_cap);
       if(tmp_buf == NULL)
       {
         free(buffer);
@@ -50,15 +52,29 @@ int main(int argc, char** argv)
 
   }
 
-  printf("got here!\n");
-
-
   for(int i = 0; i<buffer_size; i++)
   {
     putchar(buffer[i]);
   }
 
-  
+  int buf_idx = 0;
+  while(1)
+  {
+    ch = fgetc(fp);
+    if(ch == EOF)
+    {
+      rewind(fp);
+      buf_idx = 0;
+      continue;
+    }
+
+    if(ch != buffer[buf_idx])
+    {
+      printf("file changed!\n");
+      break;
+    }
+    buf_idx++;
+  }
 
   fclose(fp);
 
