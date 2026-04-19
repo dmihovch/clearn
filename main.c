@@ -1,83 +1,41 @@
 #include <stdio.h>
-#include <stdlib.h>
-
-//need to switch to just use open and read
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/inotify.h>
 
 int main(int argc, char** argv)
 {
   if(argc < 2)
   {
-    printf("usage: ./clearn <file-name>\n");
+    printf("usage: ./clearn <dir-name>\n");
     return 1;
   }
-  FILE* fp = fopen(argv[1],"r+");
-  if(fp == NULL)
+
+  int fd = inotify_init();
+  if(fd == -1)
   {
+    printf("Unable to init inotify\n");
     return 1;
   }
-  int buffer_cap = 256;
-  int buffer_size = 0;
-  char* buffer = malloc(sizeof(char)*buffer_cap);
-  char* tmp_buf;
-  if(buffer == NULL)
+
+  int wd = inotify_add_watch(fd,argv[1],IN_CLOSE_WRITE | IN_MODIFY | IN_MOVED_TO);
+  if(wd == -1)
   {
-    fclose(fp);
+    printf("Unable to watch %s dir\n",argv[1]);
     return 1;
   }
-  //this is a change
-  char ch;
+  int buf_size = 4096;
+  char buf[buf_size];
+
   while(1)
   {
-    ch = fgetc(fp);
-    if(ch == EOF)
-    {
-      break;
-    }
-
-    if(buffer_size >= buffer_cap)
-    {
-      buffer_cap *= 2;
-      tmp_buf = realloc(buffer, sizeof(char) * buffer_cap);
-      if(tmp_buf == NULL)
-      {
-        free(buffer);
-        fclose(fp);
-        return 1;
-      }
-      buffer = tmp_buf;
-    }
-
-    buffer[buffer_size] = ch;
-    buffer_size++;
-
+    read(fd,buf,buf_size);
+    printf("something happened\n");
   }
 
-  for(int i = 0; i<buffer_size; i++)
-  {
-    putchar(buffer[i]);
-  }
+  inotify_rm_watch(fd, wd);
 
-  int buf_idx = 0;
-  while(1)
-  {
-    ch = fgetc(fp);
-    if(ch == EOF)
-    {
-      rewind(fp);
-      buf_idx = 0;
-      continue;
-    }
-
-    if(ch != buffer[buf_idx])
-    {
-      printf("file changed!\n");
-      break;
-    }
-    buf_idx++;
-  }
-
-  fclose(fp);
-
+  
   return 0;
   
 }
